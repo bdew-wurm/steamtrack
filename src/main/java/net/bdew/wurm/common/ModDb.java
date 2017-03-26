@@ -25,14 +25,11 @@ public class ModDb {
             try (ResultSet res = connection.getMetaData().getTables(null, null, "BDEW_SCHEMA", null)) {
                 if (!res.next()) {
                     logger.info("Schema version table doesn't exist - creating");
-                    try (PreparedStatement ps = connection.prepareStatement("CREATE TABLE BDEW_SCHEMA (" +
+                    execSQL("CREATE TABLE BDEW_SCHEMA (" +
                             "Mod VARCHAR(100) NOT NULL," +
                             "Version INT NOT NULL," +
                             "PRIMARY KEY(Mod)" +
-                            ")"
-                    )) {
-                        ps.execute();
-                    }
+                            ")");
                     setSchemaVer("*", SCHEMA_VER);
                 }
             }
@@ -70,6 +67,12 @@ public class ModDb {
             st.setString(1, mod);
             st.setInt(2, version);
             st.execute();
+        }
+    }
+
+    public static void execSQL(String statement) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(statement)) {
+            ps.execute();
         }
     }
 

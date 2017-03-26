@@ -22,22 +22,18 @@ public class SteamTrackerDB {
         if (version < 1) {
             SteamTracker.logger.info("Creating database tables");
 
-            try (PreparedStatement st = connection.prepareStatement("CREATE TABLE BDEW_STEAMTRACKER_PLAYERS (" +
+            ModDb.execSQL("CREATE TABLE BDEW_STEAMTRACKER_PLAYERS (" +
                     "WurmID LONG NOT NULL," +
                     "SteamID LONG NOT NULL," +
                     "PRIMARY KEY(WurmID)" +
-                    ")")) {
-                st.execute();
-            }
+                    ")");
 
-            try (PreparedStatement st = connection.prepareStatement("CREATE TABLE BDEW_STEAMTRACKER_BANS (" +
+            ModDb.execSQL("CREATE TABLE BDEW_STEAMTRACKER_BANS (" +
                     "SteamID LONG NOT NULL," +
                     "GM VARCHAR(100) NOT NULL," +
                     "Reason VARCHAR(200) NOT NULL," +
                     "PRIMARY KEY(SteamID)" +
-                    ")")) {
-                st.execute();
-            }
+                    ")");
 
             ModDb.setSchemaVer("BDEW_STEAMTRACKER", 1);
         }
