@@ -4,6 +4,7 @@ import com.wurmonline.server.players.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 public class SteamTrackerHook {
@@ -12,8 +13,19 @@ public class SteamTrackerHook {
         return Long.parseLong(id, 10);
     }
 
-    public static boolean check(String name, String steamId) {
-        return true;
+    public static boolean isBanned(String name, String steamIdAsString) {
+        try {
+            long steamId = validateId(steamIdAsString);
+            Optional<SteamTrackerDB.SteamBan> ban = SteamTrackerDB.getSteamBan(steamId);
+            if (ban.isPresent()) {
+                SteamTracker.logger.log(Level.WARNING, String.format("Rejecting login from player %s, steam ID %d is banned by %s (%s).", name, steamId, ban.get().GM, ban.get().reason));
+                return true;
+            }
+            return false;
+        } catch (Throwable e) {
+            SteamTracker.logger.log(Level.WARNING, String.format("Error checking ban for steamId %s (%s)", steamIdAsString, name), e);
+            return false;
+        }
     }
 
     public static void track(Player player, String steamIdAsString) {

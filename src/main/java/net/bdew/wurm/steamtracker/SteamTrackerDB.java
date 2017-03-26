@@ -15,6 +15,16 @@ import java.util.Optional;
 public class SteamTrackerDB {
     private static Connection connection;
 
+    public static class SteamBan {
+        public final String GM;
+        public final String reason;
+
+        public SteamBan(String GM, String reason) {
+            this.GM = GM;
+            this.reason = reason;
+        }
+    }
+
     public static void init() throws SQLException {
         ModDb.init();
         connection = ModDb.getConnection();
@@ -109,4 +119,33 @@ public class SteamTrackerDB {
             DbConnector.returnConnection(dbcon);
         }
     }
+
+    public static Optional<SteamBan> getSteamBan(long steamId) throws SQLException {
+        try (PreparedStatement st = connection.prepareStatement("SELECT GM, Reason from BDEW_STEAMTRACKER_BANS WHERE SteamID = ?")) {
+            st.setLong(1, steamId);
+            try (ResultSet res = st.executeQuery()) {
+                if (res.next())
+                    return Optional.of(new SteamBan(res.getString("GM"), res.getString("Reason")));
+                else
+                    return Optional.empty();
+            }
+        }
+    }
+
+    public static void banSteamId(long steamId, String GM, String reason) throws SQLException {
+        try (PreparedStatement st = connection.prepareStatement("INSERT OR REPLACE INTO BDEW_STEAMTRACKER_BANS (SteamID, GM, Reason) VALUES (?,?,?)")) {
+            st.setLong(1, steamId);
+            st.setString(2, GM);
+            st.setString(3, reason);
+            st.execute();
+        }
+    }
+
+    public static void unbanSteamId(long steamId) throws SQLException {
+        try (PreparedStatement st = connection.prepareStatement("DELETE FROM BDEW_STEAMTRACKER_BANS WHERE SteamID = ?")) {
+            st.setLong(1, steamId);
+            st.execute();
+        }
+    }
+
 }
