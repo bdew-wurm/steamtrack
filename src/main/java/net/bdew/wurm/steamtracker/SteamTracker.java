@@ -28,15 +28,21 @@ public class SteamTracker implements WurmServerMod, Initable, PreInitable, Serve
                 @Override
                 public void edit(MethodCall m) throws CannotCompileException {
                     if (m.getMethodName().equals("initialisePlayer")) {
-                        m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0, $0.SteamId);");
-                        logger.info("Installed track hook in handleLogin at line " + m.getLineNumber());
+                        m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0, steamIDAsString);");
+                        logger.info("Installed normal track hook in handleLogin at line " + m.getLineNumber());
+                    } else if (m.getMethodName().equals("sendReconnect") && m.getClassName().equals("com.wurmonline.server.creatures.Communicator")) {
+                        m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0.player, steamIDAsString);");
+                        logger.info("Installed reconnect track hook in handleLogin at line " + m.getLineNumber());
+                    } else if (m.getMethodName().equals("setWurmId")) {
+                        m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0, steamIDAsString);");
+                        logger.info("Installed new player track hook in handleLogin at line " + m.getLineNumber());
                     }
                 }
             });
             mHandleLogin.insertBefore(
                     "if (net.bdew.wurm.steamtracker.SteamTrackerHook.isBanned(name, steamIDAsString)) {" +
-                            "Server.getInstance().steamHandler.removeIsPlayerAuthenticated(steamIDAsString);" +
-                            "Server.getInstance().steamHandler.EndAuthSession(steamIDAsString);" +
+                            "com.wurmonline.server.Server.getInstance().steamHandler.removeIsPlayerAuthenticated(steamIDAsString);" +
+                            "com.wurmonline.server.Server.getInstance().steamHandler.EndAuthSession(steamIDAsString);" +
                             "this.sendLoginAnswer(false, \"You are banned.\", 0.0f, 0.0f, 0.0f, 0.0f, 0, \"model.player.broken\", (byte)0, 0);" +
                             "return;" +
                             "};"
@@ -67,6 +73,6 @@ public class SteamTracker implements WurmServerMod, Initable, PreInitable, Serve
 
     @Override
     public MessagePolicy onPlayerMessage(Communicator communicator, String message, String title) {
-        return null;
+        return SteamTrackerCommands.handleMessage(communicator, message, title);
     }
 }

@@ -15,7 +15,7 @@ public class SteamTrackerCommands {
         return Long.parseLong(id, 10);
     }
 
-    MessagePolicy handleMessage(Communicator communicator, String message, String title) {
+    static MessagePolicy handleMessage(Communicator communicator, String message, String title) {
         if (communicator.player.getPower() < 4 || !message.startsWith("#steam")) return MessagePolicy.PASS;
         if (Servers.localServer.id != Servers.loginServer.id) {
             communicator.sendAlertServerMessage("SteamTracker commands should be used on login server, not here.");
@@ -27,10 +27,28 @@ public class SteamTrackerCommands {
 
             if (message.equals("#steamhelp")) {
                 communicator.sendHelpMessage("Available steam tracker commands:");
+                communicator.sendHelpMessage("#steamid <name> - looks up steam id for player.");
                 communicator.sendHelpMessage("#steamplayers <steamid> - show all characters belonging to that steam id.");
                 communicator.sendHelpMessage("#steamalts <name> - show all known alts for that character.");
                 communicator.sendHelpMessage("#steamban <steamid> <reason> - issue a permanent ban by steam id.");
                 communicator.sendHelpMessage("#steamunban <steamid> - remove a permanent ban by steam id.");
+            } else if (message.startsWith("#steamid ")) {
+                if (tokens.hasMoreElements()) {
+                    String name = tokens.nextToken();
+                    Optional<Long> wurmIdOpt = SteamTrackerDB.getPlayerId(name);
+                    if (wurmIdOpt.isPresent()) {
+                        Optional<Long> steamIdOpt = SteamTrackerDB.getSteamIdForPlayer(wurmIdOpt.get());
+                        if (steamIdOpt.isPresent()) {
+                            communicator.sendNormalServerMessage(steamIdOpt.get().toString());
+                        } else {
+                            communicator.sendAlertServerMessage(String.format("No known steam id for player '%s'", name));
+                        }
+                    } else {
+                        communicator.sendAlertServerMessage(String.format("Player '%s' not found", name));
+                    }
+                } else {
+                    communicator.sendAlertServerMessage("Usage: #steamid <name>");
+                }
             } else if (message.startsWith("#steamplayers ")) {
                 if (tokens.hasMoreElements()) {
                     Long steamId = validateId(tokens.nextToken());
@@ -55,7 +73,7 @@ public class SteamTrackerCommands {
                     if (wurmIdOpt.isPresent()) {
                         Optional<Long> steamIdOpt = SteamTrackerDB.getSteamIdForPlayer(wurmIdOpt.get());
                         if (steamIdOpt.isPresent()) {
-                            Long id = wurmIdOpt.get();
+                            Long id = steamIdOpt.get();
                             List<Long> players = SteamTrackerDB.getPlayersForSteamId(id);
                             List<String> names = new ArrayList<>();
                             for (Long wurmId : players) {
@@ -65,7 +83,7 @@ public class SteamTrackerCommands {
                             if (players.isEmpty()) {
                                 communicator.sendNormalServerMessage(String.format("No known steam alts for steam player '%s'.", name));
                             } else {
-                                communicator.sendNormalServerMessage(String.format("Known steam alts for player '%s':", id));
+                                communicator.sendNormalServerMessage(String.format("Known steam alts for player '%s' (%d):", name, wurmIdOpt.get()));
                                 names.forEach(altName -> communicator.sendNormalServerMessage(" - " + altName));
                             }
                         } else {
@@ -84,6 +102,7 @@ public class SteamTrackerCommands {
                     while (tokens.hasMoreTokens()) {
                         reason = reason + tokens.nextToken() + ' ';
                     }
+                    reason = reason.trim();
                     if (reason.length() < 4) {
                         communicator.sendAlertServerMessage("The reason is too short. Please explain a bit more.");
                     } else {
@@ -96,12 +115,12 @@ public class SteamTrackerCommands {
             } else if (message.startsWith("#steamunban ")) {
                 if (tokens.hasMoreElements()) {
                     long steamID = validateId(tokens.nextToken());
-                    String reason = "";
-                    while (tokens.hasMoreTokens()) {
-                        reason = reason + tokens.nextToken() + ' ';
+                    if (!SteamTrackerDB.getSteamBan(steamID).isPresent()) {
+                        communicator.sendAlertServerMessage(String.format("Steam id %d was NOT banned.", steamID));
+                    } else {
+                        SteamTrackerDB.unbanSteamId(steamID);
+                        communicator.sendNormalServerMessage(String.format("Steam id %d was unbanned.", steamID));
                     }
-                    SteamTrackerDB.unbanSteamId(steamID);
-                    communicator.sendNormalServerMessage(String.format("Steam id %d was unbanned.", steamID));
                 } else {
                     communicator.sendAlertServerMessage("Usage: #steamunban <steamid>");
                 }
