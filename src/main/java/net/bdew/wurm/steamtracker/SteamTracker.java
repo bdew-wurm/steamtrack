@@ -34,7 +34,7 @@ public class SteamTracker implements WurmServerMod, Initable, PreInitable, Serve
                         m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0.player, steamIDAsString);");
                         logger.info("Installed reconnect track hook in handleLogin at line " + m.getLineNumber());
                     } else if (m.getMethodName().equals("setWurmId")) {
-                        m.replace("$proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0, steamIDAsString);");
+                        m.replace("$_ = $proceed($$); net.bdew.wurm.steamtracker.SteamTrackerHook.track($0, steamIDAsString);");
                         logger.info("Installed new player track hook in handleLogin at line " + m.getLineNumber());
                     }
                 }
